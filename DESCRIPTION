@@ -1,13 +1,15 @@
 Package: adjrr
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Estimation of Relative Risks From Mixed Models Using Marginal Standardization
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
+Author: Sam Watson [aut, cre]
+Authors@R: c(person("Sam", "Watson", email = "S.I.Watson@bham.ac.uk",
+                  role = c("aut", "cre")))
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true
 URL: https://github.com/samuel-watson/adjrr
 BugReports: https://github.com/samuel-watson/adjrr/issues
+RoxygenNote: 7.3.2
