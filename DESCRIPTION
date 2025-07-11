@@ -1,6 +1,6 @@
-Package: adjrr
+Package: marginme
 Type: Package
-Title: Estimation of Relative Risks From Mixed Models Using Marginal Standardization
+Title: Estimation of Relative Risks, Risk Differences, and Marginal Effects From Mixed Models Using Marginal Standardization
 Version: 0.1.0
 Author: Sam Watson [aut, cre]
 Authors@R: c(person("Sam", "Watson", email = "S.I.Watson@bham.ac.uk",

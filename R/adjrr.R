@@ -43,7 +43,8 @@ margin <- function(fit, ..., sampling = 250){
   args <- list(...)
 
   if(is(fit,"glmmTMB")){
-    f1 <- glmmrBase::lme4_to_glmmr(fit$call$formula,names(df))
+    f1 <- tryCatch(glmmrBase::lme4_to_glmmr(fit$call$formula,names(df)),error = function(e)return(list(NA)))
+    if(!is(f1,"formula"))stop("Complex model formula in glmmTMB cannot be easily converted, please create a glmmrBase Model object")
     if(fit$modelInfo$REML){
       mean_pars <- fit$fit$parfull[grepl("beta",names(fit$fit$parfull))]
     } else {
@@ -131,6 +132,7 @@ summary.margin <- function(x, digits = 3){
   rownames(out) <- name
   print(out)
   cat("\nRE type: ",x$re,", SE: ",x$se,", MCMC samples: ",x$sampling)
+  return(invisible(out))
 }
 
 
