@@ -41,19 +41,26 @@
 margin <- function(fit, ..., sampling = 250){
 
   args <- list(...)
-  f1 <- glmmrBase::lme4_to_glmmr(fit@call$formula,names(df))
+
   if(is(fit,"glmmTMB")){
+    f1 <- glmmrBase::lme4_to_glmmr(fit$call$formula,names(df))
+    if(fit$modelInfo$REML){
+      mean_pars <- fit$fit$parfull[grepl("beta",names(fit$fit$parfull))]
+    } else {
+      mean_pars <- fit$fit$par[which(names(fit$fit$par)=="beta")]
+    }
     model <- glmmrBase::Model$new(
       f1,
-      data = df[!is.na(df[,as.character(f1[[2]])]),],
-      mean = fit$fit$parfull[grepl("beta",names(fit$fit$parfull))],
-      covariance = exp(fit$fit$par)^2,
+      data = fit$frame,
+      mean = mean_pars,
+      covariance = exp(fit$fit$par[which(names(fit$fit$par)=="theta")])^2,
       family = binomial()
     )
   } else if(is(fit,"glmerMod")){
+    f1 <- glmmrBase::lme4_to_glmmr(fit@call$formula,names(df))
     model <- glmmrBase::Model$new(
       f1,
-      data = df[!is.na(df[,as.character(f1[[2]])]),],
+      data = fit@frame,#df[!is.na(df[,as.character(f1[[2]])]),],
       mean = fit@beta,
       covariance = fit@theta^2,
       family = binomial()
@@ -64,7 +71,7 @@ margin <- function(fit, ..., sampling = 250){
     stop("Fit should be glmerMod, glmmTMB, or Model class")
   }
 
-  model$mcmc_options$samps <- 250
+  model$mcmc_options$samps <- sampling
   suppressMessages(suppressWarnings(model$mcmc_sample()))
   result <- model$marginal(...)
   out <- list(
@@ -73,7 +80,8 @@ margin <- function(fit, ..., sampling = 250){
     x = args$x,
     type = args$type,
     se = args$se,
-    re = args$re
+    re = args$re,
+    sampling = sampling
   )
   class(out) <- "margin"
 
@@ -102,10 +110,27 @@ print.margin <- function(x, digits = 4){
 #' Prints the marginal output
 #'
 #' @export
-summary.margin <- function(x, ...){
+summary.margin <- function(x, digits = 3){
   cat("Marginal Effects from Mixed Model")
-  cat("\nFormula: ",as.character(x$formula))
-  print(out$result)
+  f1 <- as.character(x$formula)
+  cat("\nFormula: ",f1[[2]]," ~ ",f1[[3]])
+  if(x$type == "ratio"){
+    name <- "Log RR "
+  } else if(x$type == "diff"){
+    name <- "Risk diff. "
+  } else {
+    name <- "Marginal effect (dydx) "
+  }
+  name <- paste0(name, "(",x$x,")")
+  cat("\n\n")
+  out <- data.frame(est = round(x$result$margin, digits),
+                    se = round(x$result$SE, digits),
+                    z = round(x$result$margin/x$result$SE,digits))
+  #print(out)
+  colnames(out) <- c("Estimate","Std. Err.","z value")
+  rownames(out) <- name
+  print(out)
+  cat("\nRE type: ",x$re,", SE: ",x$se,", MCMC samples: ",x$sampling)
 }
 
 
