@@ -2,10 +2,31 @@
 % Please edit documentation in R/adjrr.R
 \name{summary.margin}
 \alias{summary.margin}
-\title{Prints the marginal output}
+\title{Summarises the marginal output}
 \usage{
-\method{summary}{margin}(x, ...)
+\method{summary}{margin}(object, ...)
+}
+\arguments{
+\item{object}{An object of class "`margin`" resulting from a call to margin}
+
+\item{...}{Further arguments passed from other methods}
+}
+\value{
+No return, called for effects
 }
 \description{
-Prints the marginal output
+Summary method for "`margin`" class
+}
+\examples{
+## fit a model using glmmTMB
+fit <- glmmTMB::glmmTMB(y ~ Treatment + x1 + x2 + x3 + x4 + (1|Cluster),
+  data = trial_data, family = binomial(link="logit"),REML = TRUE)
+## relative risk, average over random effects and fixed effects
+m1 <- margin(fit,
+       x = "Treatment",
+       type = "ratio",
+       average = c("x1","x2","x3","x4"),
+       re = "average",
+       se="GLS")
+summary(m1)
 }

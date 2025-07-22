@@ -4,12 +4,24 @@
 \alias{margin}
 \title{Estimates Relative Risks, Risk Differences, and Marginal Effects from Mixed Models}
 \usage{
-margin(fit, ..., sampling = 250)
+margin(
+  fit,
+  x,
+  type,
+  re,
+  se,
+  at = c(),
+  atmeans = c(),
+  average = c(),
+  xvals = c(1, 0),
+  atvals = c(),
+  revals = c(),
+  oim = FALSE,
+  sampling = 250
+)
 }
 \arguments{
-\item{sampling}{Integer. Number of MCMC samples to use.}
-
-\item{fit.}{Either a lme4, glmmTMB, or glmmrBase model fit.}
+\item{fit}{Either a lme4, glmmTMB, or glmmrBase model fit.}
 
 \item{x}{String. Name of the variable to calculate the marginal effect for.}
 
@@ -19,8 +31,7 @@ margin(fit, ..., sampling = 250)
 provide specific values, or `average` to average over the random effects.}
 
 \item{se}{String. Type of standard error to use, either `GLS` for the GLS standard errors, `KR` for
-Kenward-Roger estimated standard errors, `KR2` for the improved Kenward-Roger correction (see `small_sample_correction()`),
- or `robust` to use a robust sandwich estimator.}
+Kenward-Roger estimated standard errors, or `KR2` for the improved Kenward-Roger correction.}
 
 \item{at}{Optional. A vector of strings naming the fixed effects for which a specified value is given.}
 
@@ -35,6 +46,8 @@ Kenward-Roger estimated standard errors, `KR2` for the improved Kenward-Roger co
 \item{revals}{Optional. If `re="at"` then this argument provides a vector of values for the random effects.}
 
 \item{oim}{Logical. If TRUE use the observed information matrix, otherwise use the expected information matrix for standard error and related calculations.}
+
+\item{sampling}{Integer. Number of MCMC samples to use.}
 }
 \value{
 A named vector with elements `margin` specifying the point estimate and `se` giving the standard error.
@@ -57,5 +70,32 @@ factor variables are specified as the name of the `variable_value`, e.g. `t_1`. 
 of the stored parameters and data variables see the member function `names()`.
 }
 \examples{
-TBC
+## fit a model using glmmTMB
+fit <- glmmTMB::glmmTMB(y ~ Treatment + x1 + x2 + x3 + x4 + (1|Cluster),
+  data = trial_data, family = binomial(link="logit"),REML = TRUE)
+## relative risk, average over random effects and fixed effects
+m1 <- margin(fit,
+       x = "Treatment",
+       type = "ratio",
+       average = c("x1","x2","x3","x4"),
+       re = "average",
+       se="GLS")
+summary(m1)
+## stata default for margins command is to set random effects to zero
+m2 <- margin(fit,
+       x = "Treatment",
+       type = "ratio",
+       average = c("x1","x2","x3","x4"),
+       re = "zero",
+       se="GLS")
+summary(m2)
+## finally estimate a risk difference, with random effects at zero and fixed effects
+## at mean values
+m3 <- margin(fit,
+       x = "Treatment",
+       type = "diff",
+       atmeans = c("x1","x2","x3","x4"),
+       re = "zero",
+       se="GLS")
+summary(m3)
 }

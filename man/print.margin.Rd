@@ -6,6 +6,26 @@
 \usage{
 \method{print}{margin}(x, ...)
 }
+\arguments{
+\item{x}{An object of class "`margin`" resulting from a call to margin}
+
+\item{...}{Further arguments passed from other methods}
+}
+\value{
+No return, called for effects
+}
 \description{
-Prints the marginal output
+Print method for class "`margin`"
+}
+\examples{
+## fit a model using glmmTMB
+fit <- glmmTMB::glmmTMB(y ~ Treatment + x1 + x2 + x3 + x4 + (1|Cluster),
+  data = trial_data, family = binomial(link="logit"),REML = TRUE)
+## relative risk, average over random effects and fixed effects
+margin(fit,
+       x = "Treatment",
+       type = "ratio",
+       average = c("x1","x2","x3","x4"),
+       re = "average",
+       se="GLS")
 }

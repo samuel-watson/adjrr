@@ -5,11 +5,19 @@ Version: 0.1.0
 Author: Sam Watson [aut, cre]
 Authors@R: c(person("Sam", "Watson", email = "S.I.Watson@bham.ac.uk",
                   role = c("aut", "cre")))
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Description: The package provides a function to estimate relative risks, risk differences, and 
+  partial effects from mixed models estimated using lme4, glmmTMB or glmmrBase. Marginalisation over 
+  random effect terms is accomplished using Markov Chain Monte Carlo.
+Imports: 
+  methods,
+  glmmrBase (>= 1.0.2)
+Suggests:
+  glmmTMB (>= 1.1.10)
 License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true
 URL: https://github.com/samuel-watson/adjrr
 BugReports: https://github.com/samuel-watson/adjrr/issues
 RoxygenNote: 7.3.2
+Depends: 
+    R (>= 2.10)

@@ -16,14 +16,14 @@
 #' of the variables as given to the model object. Most variables are as specified in the formula,
 #' factor variables are specified as the name of the `variable_value`, e.g. `t_1`. To see the names
 #' of the stored parameters and data variables see the member function `names()`.
-#' @param fit. Either a lme4, glmmTMB, or glmmrBase model fit.
+#'
+#' @param fit Either a lme4, glmmTMB, or glmmrBase model fit.
 #' @param x String. Name of the variable to calculate the marginal effect for.
 #' @param type String. Either `dydx` for derivative, `diff` for difference, or `ratio` for log ratio. See description.
 #' @param re String. Either `estimated` to condition on estimated values, `zero` to set to zero, `at` to
 #' provide specific values, or `average` to average over the random effects.
 #' @param se String. Type of standard error to use, either `GLS` for the GLS standard errors, `KR` for
-#' Kenward-Roger estimated standard errors, `KR2` for the improved Kenward-Roger correction (see `small_sample_correction()`),
-#'  or `robust` to use a robust sandwich estimator.
+#' Kenward-Roger estimated standard errors, or `KR2` for the improved Kenward-Roger correction.
 #' @param at Optional. A vector of strings naming the fixed effects for which a specified value is given.
 #' @param atmeans Optional. A vector of strings naming the fixed effects that will be set at their mean value.
 #' @param average Optional. A vector of strings naming the fixed effects which will be averaged over.
@@ -35,14 +35,43 @@
 #' @return A named vector with elements `margin` specifying the point estimate and `se` giving the standard error.
 #' @importFrom glmmrBase lme4_to_glmmr
 #' @importFrom glmmrBase Model
+#' @importFrom methods is
+#' @importFrom stats binomial
 #' @examples
-#' TBC
+#' ## fit a model using glmmTMB
+#' fit <- glmmTMB::glmmTMB(y ~ Treatment + x1 + x2 + x3 + x4 + (1|Cluster),
+#'   data = trial_data, family = binomial(link="logit"),REML = TRUE)
+#' ## relative risk, average over random effects and fixed effects
+#' m1 <- margin(fit,
+#'        x = "Treatment",
+#'        type = "ratio",
+#'        average = c("x1","x2","x3","x4"),
+#'        re = "average",
+#'        se="GLS")
+#' summary(m1)
+#' ## stata default for margins command is to set random effects to zero
+#' m2 <- margin(fit,
+#'        x = "Treatment",
+#'        type = "ratio",
+#'        average = c("x1","x2","x3","x4"),
+#'        re = "zero",
+#'        se="GLS")
+#' summary(m2)
+#' ## finally estimate a risk difference, with random effects at zero and fixed effects
+#' ## at mean values
+#' m3 <- margin(fit,
+#'        x = "Treatment",
+#'        type = "diff",
+#'        atmeans = c("x1","x2","x3","x4"),
+#'        re = "zero",
+#'        se="GLS")
+#' summary(m3)
 #' @export
-margin <- function(fit, ..., sampling = 250){
-
-  args <- list(...)
+margin <- function(fit, x,type,re,se,at = c(),atmeans = c(),average=c(),
+                   xvals=c(1,0),atvals=c(),revals=c(),oim = FALSE, sampling = 250){
 
   if(is(fit,"glmmTMB")){
+    df <- fit$frame
     f1 <- tryCatch(glmmrBase::lme4_to_glmmr(fit$call$formula,names(df)),error = function(e)return(list(NA)))
     if(!is(f1,"formula"))stop("Complex model formula in glmmTMB cannot be easily converted, please create a glmmrBase Model object")
     if(fit$modelInfo$REML){
@@ -58,6 +87,7 @@ margin <- function(fit, ..., sampling = 250){
       family = binomial()
     )
   } else if(is(fit,"glmerMod")){
+    df <- fit@frame
     f1 <- glmmrBase::lme4_to_glmmr(fit@call$formula,names(df))
     model <- glmmrBase::Model$new(
       f1,
@@ -74,14 +104,17 @@ margin <- function(fit, ..., sampling = 250){
 
   model$mcmc_options$samps <- sampling
   suppressMessages(suppressWarnings(model$mcmc_sample()))
-  result <- model$marginal(...)
+  result <- model$marginal(x = x,type = type,re = re,se = se,
+                           at = at,atmeans = atmeans,
+                           average=average,xvals=xvals,atvals=atvals,
+                           revals=revals,oim = oim)
   out <- list(
     result = result,
     formula = f1,
-    x = args$x,
-    type = args$type,
-    se = args$se,
-    re = args$re,
+    x = x,
+    type = type,
+    se = se,
+    re = re,
     sampling = sampling
   )
   class(out) <- "margin"
@@ -91,8 +124,26 @@ margin <- function(fit, ..., sampling = 250){
 
 #' Prints the marginal output
 #'
+#' Print method for class "`margin`"
+#'
+#' @param x An object of class "`margin`" resulting from a call to margin
+#' @param ... Further arguments passed from other methods
+#'
+#' @return No return, called for effects
+#' @examples
+#' ## fit a model using glmmTMB
+#' fit <- glmmTMB::glmmTMB(y ~ Treatment + x1 + x2 + x3 + x4 + (1|Cluster),
+#'   data = trial_data, family = binomial(link="logit"),REML = TRUE)
+#' ## relative risk, average over random effects and fixed effects
+#' margin(fit,
+#'        x = "Treatment",
+#'        type = "ratio",
+#'        average = c("x1","x2","x3","x4"),
+#'        re = "average",
+#'        se="GLS")
 #' @export
-print.margin <- function(x, digits = 4){
+print.margin <- function(x, ...){
+  digits = 4
   cat("Marginal Effects from Mixed Model")
   f1 <- as.character(x$formula)
   cat("\nFormula: ",f1[[2]]," ~ ",f1[[3]])
@@ -108,31 +159,95 @@ print.margin <- function(x, digits = 4){
 }
 
 
-#' Prints the marginal output
+#' Summarises the marginal output
 #'
+#' Summary method for "`margin`" class
+#'
+#' @param object An object of class "`margin`" resulting from a call to margin
+#' @param ... Further arguments passed from other methods
+#'
+#' @return No return, called for effects
+#' @examples
+#' ## fit a model using glmmTMB
+#' fit <- glmmTMB::glmmTMB(y ~ Treatment + x1 + x2 + x3 + x4 + (1|Cluster),
+#'   data = trial_data, family = binomial(link="logit"),REML = TRUE)
+#' ## relative risk, average over random effects and fixed effects
+#' m1 <- margin(fit,
+#'        x = "Treatment",
+#'        type = "ratio",
+#'        average = c("x1","x2","x3","x4"),
+#'        re = "average",
+#'        se="GLS")
+#' summary(m1)
 #' @export
-summary.margin <- function(x, digits = 3){
+summary.margin <- function(object, ...){
+  digits = 3
   cat("Marginal Effects from Mixed Model")
-  f1 <- as.character(x$formula)
+  f1 <- as.character(object$formula)
   cat("\nFormula: ",f1[[2]]," ~ ",f1[[3]])
-  if(x$type == "ratio"){
+  if(object$type == "ratio"){
     name <- "Log RR "
-  } else if(x$type == "diff"){
+  } else if(object$type == "diff"){
     name <- "Risk diff. "
   } else {
     name <- "Marginal effect (dydx) "
   }
-  name <- paste0(name, "(",x$x,")")
+  name <- paste0(name, "(",object$x,")")
   cat("\n\n")
-  out <- data.frame(est = round(x$result$margin, digits),
-                    se = round(x$result$SE, digits),
-                    z = round(x$result$margin/x$result$SE,digits))
-  #print(out)
+  out <- data.frame(est = round(object$result$margin, digits),
+                    se = round(object$result$SE, digits),
+                    z = round(object$result$margin/object$result$SE,digits))
   colnames(out) <- c("Estimate","Std. Err.","z value")
   rownames(out) <- name
   print(out)
-  cat("\nRE type: ",x$re,", SE: ",x$se,", MCMC samples: ",x$sampling)
+  cat("\nRE type: ",object$re,", SE: ",object$se,", MCMC samples: ",object$sampling)
   return(invisible(out))
 }
 
+#' Confidence interval for marginal effect
+#'
+#' Confidence interval method for class "`margin`"
+#'
+#' @details
+#' Computes confidence intervals using a standard Wald test for the marginal effect. If argument
+#' `df` is used, then a t-statistic is use to construct the interval with `df` degrees of freedom,
+#' otherwise a z-statistic is used.
+#'
+#'
+#' @param x An object of class "`margin`" resulting from a call to margin
+#' @param level the confidence level required
+#' @param df the degrees of freedom for a t-statistic
+#'
+#' @return A named vector giving lower and upper confidence limits for the marginal effect. They
+#' will be labelled as (1-level)/2 and 1-(1-level).2
+#' @examples
+#' ## fit a model using glmmTMB
+#' fit <- glmmTMB::glmmTMB(y ~ Treatment + x1 + x2 + x3 + x4 + (1|Cluster),
+#'   data = trial_data, family = binomial(link="logit"),REML = TRUE)
+#' ## relative risk, average over random effects and fixed effects
+#' m1 <- margin(fit,
+#'        x = "Treatment",
+#'        type = "ratio",
+#'        average = c("x1","x2","x3","x4"),
+#'        re = "average",
+#'        se="GLS")
+#' confint(m1)
+#' @importFrom stats qnorm qt
+#' @export
+ confint.margin <- function(x, level = 0.95, df = NULL){
+  if(is.null(df)){
+    cint <- c(x$result$margin - qnorm(1 - (1-level)/2)*x$result$SE, x$result$margin + qnorm(1 - (1-level)/2)*x$result$SE)
+  } else {
+    cint <- c(x$result$margin - qt(1 - (1-level)/2, df = df)*x$result$SE, x$result$margin + qt(1 - (1-level)/2, df = df)*x$result$SE)
+  }
+   names(cint) <- c(paste0((1-level)*100/2,"%"),paste0(100-(1-level)*100/2,"%"))
+   return(cint)
+}
 
+#' Simulated trial data
+#'
+#' Simulated trial data used to demonstrate the estimation of relative risk from an adjusted mixed logistic regression model.
+#' See \link[marginme]{margin}.
+#' @name trial_data
+#' @docType data
+NULL
