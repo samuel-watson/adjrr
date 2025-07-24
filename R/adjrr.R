@@ -214,12 +214,14 @@ summary.margin <- function(object, ...){
 #' otherwise a z-statistic is used.
 #'
 #'
-#' @param x An object of class "`margin`" resulting from a call to margin
+#' @param object An object of class "`margin`" resulting from a call to margin
+#' @param parm No effect.
 #' @param level the confidence level required
-#' @param df the degrees of freedom for a t-statistic
+#' @param ... additional argument(s) for methods
 #'
 #' @return A named vector giving lower and upper confidence limits for the marginal effect. They
-#' will be labelled as (1-level)/2 and 1-(1-level).2
+#' will be labelled as (1-level)/2 and 1-(1-level).2 An argument df can be provided to use a t-test
+#' to construct the confidence interval.
 #' @examples
 #' ## fit a model using glmmTMB
 #' fit <- glmmTMB::glmmTMB(y ~ Treatment + x1 + x2 + x3 + x4 + (1|Cluster),
@@ -234,7 +236,7 @@ summary.margin <- function(object, ...){
 #' confint(m1)
 #' @importFrom stats qnorm qt
 #' @export
- confint.margin <- function(x, level = 0.95, df = NULL){
+ confint.margin <- function(object, parm, level = 0.95,...){
   if(is.null(df)){
     cint <- c(x$result$margin - qnorm(1 - (1-level)/2)*x$result$SE, x$result$margin + qnorm(1 - (1-level)/2)*x$result$SE)
   } else {

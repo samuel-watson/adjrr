@@ -4,18 +4,21 @@
 \alias{confint.margin}
 \title{Confidence interval for marginal effect}
 \usage{
-\method{confint}{margin}(x, level = 0.95, df = NULL)
+\method{confint}{margin}(object, parm, level = 0.95, ...)
 }
 \arguments{
-\item{x}{An object of class "`margin`" resulting from a call to margin}
+\item{object}{An object of class "`margin`" resulting from a call to margin}
+
+\item{parm}{No effect.}
 
 \item{level}{the confidence level required}
 
-\item{df}{the degrees of freedom for a t-statistic}
+\item{...}{additional argument(s) for methods}
 }
 \value{
 A named vector giving lower and upper confidence limits for the marginal effect. They
-will be labelled as (1-level)/2 and 1-(1-level).2
+will be labelled as (1-level)/2 and 1-(1-level).2 An argument df can be provided to use a t-test
+to construct the confidence interval.
 }
 \description{
 Confidence interval method for class "`margin`"
